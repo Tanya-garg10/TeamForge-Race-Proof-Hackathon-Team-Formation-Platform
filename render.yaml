@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: teamforge-web-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: POSTGRES_PRISMA_URL
+        fromDatabase:
+          name: teamforge-db
+          property: connectionString
+
+databases:
+  - name: teamforge-db
+    plan: starter
+    databaseName: teamforge
+    user: teamforge

@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Manrope", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-tf-bg: #FAF9FF;
+  --color-tf-bg-secondary: #F3F0FF;
+  --color-tf-surface: #FFFFFF;
+  --color-tf-violet: #7257E8;
+  --color-tf-indigo: #4338A8;
+  --color-tf-lavender: #EAE5FF;
+  --color-tf-blue: #5B8DEF;
+  --color-tf-success: #16A477;
+  --color-tf-warning: #E9A23B;
+  --color-tf-danger: #E15B70;
+  --color-tf-text: #201B35;
+  --color-tf-muted: #77718C;
+  --color-tf-border: #ECE8F4;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: #FAF9FF;
+    color: #201B35;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #FAF9FF;
+    color: #201B35;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-display);
+    color: #201B35;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.tf-card-shadow {
+  box-shadow: 0 1px 2px rgba(32, 27, 53, 0.04), 0 8px 24px -12px rgba(114, 87, 232, 0.1);
+}
+
+.tf-elevated-shadow {
+  box-shadow: 0 4px 12px rgba(32, 27, 53, 0.05), 0 18px 40px -16px rgba(67, 56, 168, 0.14);
+}

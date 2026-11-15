@@ -1,0 +1,161 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'name', 'experienceLevel', 'timezone'])
+        && data.keys().hasOnly(['uid', 'name', 'bio', 'experienceLevel', 'timezone', 'weeklyAvailability', 'createdAt'])
+        && data.uid is string && data.uid == request.auth.uid && data.uid.size() <= 128
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 80
+        && (!('bio' in data) || (data.bio is string && data.bio.size() <= 500))
+        && data.experienceLevel in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']
+        && data.timezone is string && data.timezone.size() >= 1 && data.timezone.size() <= 64
+        && (!('weeklyAvailability' in data) || (data.weeklyAvailability is number && data.weeklyAvailability >= 0 && data.weeklyAvailability <= 168));
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['uid', 'email'])
+        && data.keys().hasOnly(['uid', 'email'])
+        && data.uid is string && data.uid == request.auth.uid && data.uid.size() <= 128
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160;
+    }
+
+    function isValidTeam(data) {
+      return data.keys().hasAll(['id', 'hackathonId', 'name', 'leaderUid', 'maxSize', 'memberCount', 'status', 'createdAt'])
+        && data.keys().hasOnly(['id', 'hackathonId', 'name', 'leaderUid', 'maxSize', 'memberCount', 'status', 'createdAt'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.hackathonId is string && data.hackathonId.size() >= 1 && data.hackathonId.size() <= 128
+        && data.name is string && data.name.size() >= 2 && data.name.size() <= 80
+        && data.leaderUid is string && data.leaderUid.size() >= 1 && data.leaderUid.size() <= 128
+        && data.maxSize is number && data.maxSize >= 1 && data.maxSize <= 10
+        && data.memberCount is number && data.memberCount >= 1 && data.memberCount <= data.maxSize
+        && data.status in ['ACTIVE', 'LOCKED', 'ARCHIVED'];
+    }
+
+    function isValidTeamMember(data) {
+      return data.keys().hasAll(['userUid', 'teamId', 'hackathonId', 'role', 'joinedAt'])
+        && data.keys().hasOnly(['userUid', 'teamId', 'hackathonId', 'role', 'joinedAt'])
+        && data.userUid is string && data.userUid.size() >= 1 && data.userUid.size() <= 128
+        && data.teamId is string && data.teamId.size() >= 1 && data.teamId.size() <= 128
+        && data.hackathonId is string && data.hackathonId.size() >= 1 && data.hackathonId.size() <= 128
+        && data.role in ['LEADER', 'MEMBER'];
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['id', 'actorUid', 'actionType', 'entityType', 'entityId', 'createdAt'])
+        && data.keys().hasOnly(['id', 'actorUid', 'actionType', 'entityType', 'entityId', 'createdAt'])
+        && data.id is string && data.id.size() >= 1 && data.id.size() <= 128
+        && data.actorUid is string && data.actorUid == request.auth.uid && data.actorUid.size() <= 128
+        && data.actionType is string && data.actionType.size() >= 2 && data.actionType.size() <= 64
+        && data.entityType is string && data.entityType.size() >= 2 && data.entityType.size() <= 40
+        && data.entityId is string && data.entityId.size() >= 1 && data.entityId.size() <= 128;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isSignedIn();
+      allow list: if false;
+      allow create: if isValidId(userId) && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(userId) && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'bio', 'experienceLevel', 'timezone', 'weeklyAvailability']);
+      allow delete: if false;
+
+      match /private/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && isOwner(userId);
+        allow list: if isOwner(userId) && resource.data.uid == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(docId) && isOwner(userId)
+          && isValidUserPrivate(incoming());
+        allow update: if isValidId(userId) && isValidId(docId) && isOwner(userId)
+          && isValidUserPrivate(incoming())
+          && incoming().uid == existing().uid
+          && incoming().diff(existing()).affectedKeys().hasOnly(['email']);
+        allow delete: if false;
+      }
+    }
+
+    match /hackathons/{hackathonId} {
+      allow get: if isValidId(hackathonId);
+      allow list: if resource.data.maxTeamSize >= 1;
+      allow write: if false;
+    }
+
+    match /teams/{teamId} {
+      allow get: if isValidId(teamId);
+      allow list: if resource.data.status in ['ACTIVE', 'LOCKED'];
+      allow create: if isValidId(teamId) && isSignedIn()
+        && isValidTeam(incoming())
+        && incoming().leaderUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/hackathons/$(incoming().hackathonId));
+      allow update: if isValidId(teamId) && isSignedIn()
+        && isValidTeam(incoming())
+        && existing().status != 'ARCHIVED'
+        && incoming().id == existing().id
+        && incoming().hackathonId == existing().hackathonId
+        && incoming().createdAt == existing().createdAt
+        && (
+          (existing().leaderUid == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'maxSize', 'status', 'leaderUid']))
+          || (incoming().memberCount == existing().memberCount + 1
+            && incoming().memberCount <= existing().maxSize
+            && incoming().diff(existing()).affectedKeys().hasOnly(['memberCount'])
+            && existsAfter(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)))
+        );
+      allow delete: if isValidId(teamId) && isSignedIn() && existing().leaderUid == request.auth.uid;
+
+      match /members/{memberId} {
+        allow get: if isValidId(teamId) && isValidId(memberId) && isSignedIn();
+        allow list: if isSignedIn() && resource.data.teamId == teamId;
+        allow create: if isValidId(teamId) && isValidId(memberId) && isSignedIn()
+          && memberId == request.auth.uid
+          && isValidTeamMember(incoming())
+          && incoming().userUid == request.auth.uid
+          && incoming().teamId == teamId
+          && incoming().joinedAt == request.time
+          && exists(/databases/$(database)/documents/teams/$(teamId));
+        allow update: if false;
+        allow delete: if isValidId(teamId) && isValidId(memberId) && isSignedIn()
+          && (memberId == request.auth.uid
+            || get(/databases/$(database)/documents/teams/$(teamId)).data.leaderUid == request.auth.uid);
+      }
+    }
+
+    match /auditLogs/{logId} {
+      allow get: if isValidId(logId) && isSignedIn() && resource.data.actorUid == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.actorUid == request.auth.uid;
+      allow create: if isValidId(logId) && isSignedIn()
+        && isValidAuditLog(incoming())
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

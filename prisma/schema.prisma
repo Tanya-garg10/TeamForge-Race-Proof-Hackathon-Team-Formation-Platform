@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum TeamRole {
+  LEADER
+  MEMBER
+}
+
+enum TeamStatus {
+  ACTIVE
+  LOCKED
+  ARCHIVED
+}
+
+enum InvitationStatus {
+  ACTIVE
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum JoinRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model User {
+  id                 String          @id @default(cuid())
+  email              String          @unique
+  passwordHash       String          @map("password_hash")
+  name               String
+  avatarUrl          String?         @map("avatar_url")
+  bio                String?
+  skills             String[]        @default([])
+  experienceLevel    ExperienceLevel @default(INTERMEDIATE) @map("experience_level")
+  preferredRoles     String[]        @default([]) @map("preferred_roles")
+  timezone           String          @default("UTC")
+  weeklyAvailability Int             @default(15) @map("weekly_availability")
+  githubUrl          String?         @map("github_url")
+  portfolioUrl       String?         @map("portfolio_url")
+  isDemoAdmin        Boolean         @default(false) @map("is_demo_admin")
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
+
+  ledTeams           Team[]          @relation("TeamLeader")
+  memberships        TeamMember[]
+  sentInvitations    Invitation[]    @relation("InvitationSender")
+  joinRequests       JoinRequest[]
+  auditLogs          AuditLog[]
+
+  @@index([timezone])
+  @@map("users")
+}
+
+model Hackathon {
+  id                   String        @id @default(cuid())
+  name                 String
+  slug                 String        @unique
+  description          String
+  theme                String
+  registrationDeadline DateTime      @map("registration_deadline")
+  minTeamSize          Int           @map("min_team_size")
+  maxTeamSize          Int           @map("max_team_size")
+  requiredSkills       String[]      @default([]) @map("required_skills")
+  bannerUrl            String?       @map("banner_url")
+  createdAt            DateTime      @default(now()) @map("created_at")
+
+  teams                Team[]
+  memberships          TeamMember[]
+  invitations          Invitation[]
+  joinRequests         JoinRequest[]
+
+  @@index([registrationDeadline])
+  @@map("hackathons")
+}
+
+model Team {
+  id             String        @id @default(cuid())
+  hackathonId    String        @map("hackathon_id")
+  name           String
+  description    String
+  requiredSkills String[]      @default([]) @map("required_skills")
+  minSize        Int           @map("min_size")
+  maxSize        Int           @map("max_size")
+  leaderId       String        @map("leader_id")
+  status         TeamStatus    @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  hackathon      Hackathon     @relation(fields: [hackathonId], references: [id], onDelete: Restrict)
+  leader         User          @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: Restrict)
+  members        TeamMember[]
+  invitations    Invitation[]
+  joinRequests   JoinRequest[]
+
+  @@unique([hackathonId, name])
+  @@index([hackathonId, status])
+  @@map("teams")
+}
+
+model TeamMember {
+  id          String    @id @default(cuid())
+  teamId      String    @map("team_id")
+  hackathonId String    @map("hackathon_id")
+  userId      String    @map("user_id")
+  role        TeamRole  @default(MEMBER)
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@unique([hackathonId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model Invitation {
+  id           String           @id @default(cuid())
+  teamId       String           @map("team_id")
+  hackathonId  String           @map("hackathon_id")
+  inviterId    String           @map("inviter_id")
+  inviteeEmail String?          @map("invitee_email")
+  tokenHash    String           @unique @map("token_hash")
+  status       InvitationStatus @default(ACTIVE)
+  maxUses      Int              @default(1) @map("max_uses")
+  usesCount    Int              @default(0) @map("uses_count")
+  expiresAt    DateTime         @map("expires_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  team         Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  hackathon    Hackathon        @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  inviter      User             @relation("InvitationSender", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, status])
+  @@map("invitations")
+}
+
+model JoinRequest {
+  id          String            @id @default(cuid())
+  teamId      String            @map("team_id")
+  hackathonId String            @map("hackathon_id")
+  userId      String            @map("user_id")
+  message     String?
+  status      JoinRequestStatus @default(PENDING)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  reviewedAt  DateTime?         @map("reviewed_at")
+
+  team        Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  hackathon   Hackathon         @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, status])
+  @@map("join_requests")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String   @map("actor_user_id")
+  actorName   String?  @map("actor_name")
+  actionType  String   @map("action_type")
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  hackathonId String?  @map("hackathon_id")
+  teamId      String?  @map("team_id")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor       User     @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([teamId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model IdempotencyKey {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  endpoint       String
+  idempotencyKey String   @map("idempotency_key")
+  statusCode     Int      @map("status_code")
+  responseJson   Json     @map("response_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, endpoint, idempotencyKey])
+  @@map("idempotency_keys")
+}

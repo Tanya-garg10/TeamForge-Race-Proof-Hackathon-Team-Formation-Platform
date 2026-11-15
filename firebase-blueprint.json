@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public participant profile for hackathon teammate discovery",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "bio": { "type": "string", "maxLength": 500 },
+        "experienceLevel": { "type": "string", "enum": ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"] },
+        "timezone": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "weeklyAvailability": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "experienceLevel", "timezone"]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Private PII record isolated to the owning user",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 160 }
+      },
+      "required": ["uid", "email"]
+    },
+    "Hackathon": {
+      "title": "Hackathon",
+      "description": "Hackathon event metadata and team size constraints",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 3, "maxLength": 120 },
+        "theme": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "minTeamSize": { "type": "number" },
+        "maxTeamSize": { "type": "number" },
+        "registrationDeadline": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "theme", "minTeamSize", "maxTeamSize"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "Hackathon team with capacity limits and leader reference",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "hackathonId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "leaderUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "maxSize": { "type": "number" },
+        "memberCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["ACTIVE", "LOCKED", "ARCHIVED"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "hackathonId", "name", "leaderUid", "maxSize", "memberCount", "status"]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "Atomic membership subcollection record inside a team",
+      "type": "object",
+      "properties": {
+        "userUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "teamId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "hackathonId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "role": { "type": "string", "enum": ["LEADER", "MEMBER"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userUid", "teamId", "hackathonId", "role"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable audit trail record for team lifecycle changes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "actorUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "actionType": { "type": "string", "minLength": 2, "maxLength": 64 },
+        "entityType": { "type": "string", "minLength": 2, "maxLength": 40 },
+        "entityId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "actorUid", "actionType", "entityType", "entityId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Public participant profile document"
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivate" },
+      "description": "Private PII subcollection accessible only by the owner"
+    },
+    "/hackathons/{hackathonId}": {
+      "schema": { "$ref": "#/entities/Hackathon" },
+      "description": "Hackathon event directory"
+    },
+    "/teams/{teamId}": {
+      "schema": { "$ref": "#/entities/Team" },
+      "description": "Hackathon teams"
+    },
+    "/teams/{teamId}/members/{memberId}": {
+      "schema": { "$ref": "#/entities/TeamMember" },
+      "description": "Team membership records"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable team audit logs"
+    }
+  }
+}

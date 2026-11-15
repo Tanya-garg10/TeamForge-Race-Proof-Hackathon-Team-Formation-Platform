@@ -1,0 +1,6 @@
+{
+  "name": "TeamForge",
+  "description": "Race-proof hackathon team formation platform with PostgreSQL/transactional seat locking, cryptographically secure invitations, intelligent teammate matching, and real-time Socket.IO updates.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
