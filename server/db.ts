@@ -7,7 +7,13 @@ let currentDbPath: string | null = null;
 
 export function getDbPath(): string {
   if (process.env.TEST_DB_PATH) return process.env.TEST_DB_PATH;
-  if (process.env.SQLITE_DB_PATH) return process.env.SQLITE_DB_PATH;
+  if (process.env.SQLITE_DB_PATH) {
+    const customDir = path.dirname(path.resolve(process.env.SQLITE_DB_PATH));
+    if (!fs.existsSync(customDir)) {
+      fs.mkdirSync(customDir, { recursive: true });
+    }
+    return path.resolve(process.env.SQLITE_DB_PATH);
+  }
   const dataDir = path.resolve(process.cwd(), 'data');
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -17,6 +23,11 @@ export function getDbPath(): string {
 
 export function initDatabase(customPath?: string): DatabaseSync {
   const targetPath = customPath ?? getDbPath();
+  const targetDir = path.dirname(path.resolve(targetPath));
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
   if (dbInstance && currentDbPath === targetPath) {
     return dbInstance;
   }
@@ -28,7 +39,15 @@ export function initDatabase(customPath?: string): DatabaseSync {
     }
   }
 
-  const db = new DatabaseSync(targetPath);
+  let db: DatabaseSync;
+  try {
+    db = new DatabaseSync(targetPath);
+  } catch (err) {
+    // If WAL / target directory has permission or path issues on cloud containers, fallback to in-memory/temp sqlite
+    console.warn(`Could not open SQLite DB at ${targetPath}. Falling back to /tmp/teamforge.db:`, err);
+    const fallbackPath = path.resolve('/tmp', 'teamforge.db');
+    db = new DatabaseSync(fallbackPath);
+  }
   db.exec(`
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
