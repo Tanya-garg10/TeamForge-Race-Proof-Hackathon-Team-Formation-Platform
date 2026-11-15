@@ -2,8 +2,6 @@
 
 TeamForge is an enterprise-grade, race-condition-proof hackathon team formation and matchmaking platform. Engineered around transactional seat reservations, cryptographically hashed invitations, transparent teammate skill matching, immutable audit logging, and real-time Socket.IO board synchronization.
 
----
-
 ## 🌟 Key Engineering Highlights
 
 1. **Race-Proof Transactional Team Joining**
@@ -35,8 +33,6 @@ TeamForge is an enterprise-grade, race-condition-proof hackathon team formation 
 6. **Interactive Concurrency Lab**
    - Built-in visual simulation laboratory to test and visualize race conditions and over-allocation prevention in real-time right from the browser.
 
----
-
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS, Vite, Lucide Icons, Radix UI primitives, Motion.
@@ -44,8 +40,6 @@ TeamForge is an enterprise-grade, race-condition-proof hackathon team formation 
 - **Database & ORM**: SQLite (WAL Mode, `better-sqlite3` compatible) + PostgreSQL (Prisma schema ready for enterprise scaling).
 - **Authentication**: JWT authentication with HttpOnly cookies & Bearer tokens, BCrypt password hashing.
 - **Testing & Load Testing**: Vitest, Supertest, k6.
-
----
 
 ## 🚀 Getting Started
 
@@ -85,8 +79,6 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
----
-
 ## 👥 Demo Accounts
 
 The local database comes pre-seeded with sample users and teams. All demo accounts use the password:  
@@ -99,8 +91,6 @@ The local database comes pre-seeded with sample users and teams. All demo accoun
 | `carol@teamforge.dev` | Priya Nair | ML / AI Engineer |
 | `diego@teamforge.dev` | Diego Morales | Full-Stack / DevOps |
 | `admin@teamforge.dev` | Nadia Park | Platform Lab Admin |
-
----
 
 ## 🧪 Testing & Verification
 
@@ -117,39 +107,6 @@ npm run seed
 # Run k6 load test suite (requires k6 installed)
 k6 run load-tests/teamforge.k6.js
 ```
-
----
-
-## 🚢 Deployment
-
-### Deploy to Render (Blueprint)
-The repository includes a production-ready `render.yaml` blueprint:
-1. Fork or push this repository to GitHub.
-2. In [Render Dashboard](https://dashboard.render.com), click **New +** > **Blueprint**.
-3. Select your repository. Render will automatically spin up:
-   - Managed PostgreSQL database (`teamforge-db`)
-   - Web API Service (`teamforge-web-api`) with automated health checks (`/api/health`).
-
-### Docker Deployment
-Run using Docker Compose:
-```bash
-docker compose up -d --build
-```
-
-For complete deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
----
-
-## 📚 Documentation Index
-
-- 📐 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — System, concurrency, and Socket.IO architecture
-- 🗄️ [docs/DATABASE.md](docs/DATABASE.md) — Relational schema, constraints, and Prisma/SQLite design
-- 🔌 [docs/API.md](docs/API.md) — REST endpoint contracts & status codes
-- ⚡ [docs/CONCURRENCY_REPORT_TEMPLATE.md](docs/CONCURRENCY_REPORT_TEMPLATE.md) — 50-request concurrency verification template
-- 📊 [docs/K6_REPORT_TEMPLATE.md](docs/K6_REPORT_TEMPLATE.md) — k6 latency/throughput report template
-- 🌐 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Render, PostgreSQL, and Docker deployment guide
-
----
 
 ## 📄 License
 
