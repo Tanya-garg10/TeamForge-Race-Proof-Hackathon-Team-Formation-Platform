@@ -81,6 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const loginWithGoogle = useCallback(async () => {
+    if (!firebaseAuth) {
+      throw new Error('Google Sign-In is not configured. Please use email & password login or set Firebase environment variables.');
+    }
     const credential = await signInWithPopup(firebaseAuth, googleProvider);
     const idToken = await credential.user.getIdToken();
     const data = await apiFetch<{ user: PublicUser; token: string }>('/api/auth/firebase', {
