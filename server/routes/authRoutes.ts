@@ -16,10 +16,11 @@ import {
 import { loginSchema, registerSchema } from '../../shared/validation.ts';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth as getFirebaseAdminAuth } from 'firebase-admin/auth';
-import firebaseConfig from '../../firebase-applet-config.json' with { type: 'json' };
+
+const firebaseProjectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'teamforge-demo';
 
 if (!getApps().length) {
-  initializeApp({ projectId: firebaseConfig.projectId });
+  initializeApp({ projectId: firebaseProjectId });
 }
 
 export const authRouter = Router();
